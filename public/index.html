@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#faf6ef" />
+  <title>Carnet de comptes</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="app">
+    <span style="font-size:1.4rem">📒</span>
+    <h1>Carnet de comptes</h1>
+    <span class="grow"></span>
+    <span id="reviewBadge" class="badge hide">0 à vérifier</span>
+    <button class="ghost" id="settingsBtn" aria-label="Réglages">⚙️</button>
+  </header>
+
+  <main>
+    <!-- ======================= ONGLET SAISIE ======================= -->
+    <section id="tab-saisie">
+      <div class="card">
+        <h2>Ajouter une dépense</h2>
+        <div class="methods">
+          <div class="method" data-method="receipt">
+            <span class="ico">📷</span><span class="lbl">Ticket</span>
+            <span class="sub">Photo → auto</span>
+          </div>
+          <div class="method" data-method="notebook">
+            <span class="ico">📖</span><span class="lbl">Carnet</span>
+            <span class="sub">Photo de page</span>
+          </div>
+          <div class="method" data-method="voice">
+            <span class="ico">🎙️</span><span class="lbl">Voix</span>
+            <span class="sub">Dire à voix haute</span>
+          </div>
+          <div class="method" data-method="manual">
+            <span class="ico">✍️</span><span class="lbl">Manuel</span>
+            <span class="sub">3 champs</span>
+          </div>
+        </div>
+        <input type="file" id="fileInput" accept="image/*" capture="environment" class="hidden" />
+      </div>
+
+      <div class="card">
+        <h2>Dernières dépenses</h2>
+        <div id="expenseList"><p class="muted center">Aucune dépense pour l'instant.</p></div>
+      </div>
+    </section>
+
+    <!-- ======================= ONGLET BILAN ======================= -->
+    <section id="tab-bilan" class="hidden">
+      <div class="card">
+        <h2>Ce mois-ci</h2>
+        <div class="kpi">
+          <div class="box"><div class="n" id="kpiTotal">—</div><div class="l">Dépensé</div></div>
+          <div class="box"><div class="n" id="kpiCount">—</div><div class="l">Dépenses</div></div>
+          <div class="box"><div class="n" id="kpiReview">—</div><div class="l">À vérifier</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Répartition par catégorie</h2>
+        <div id="catBars"><p class="muted center">—</p></div>
+      </div>
+      <div class="card">
+        <h2>Évolution mensuelle</h2>
+        <div class="months" id="monthChart"></div>
+      </div>
+      <p class="hint center">La famille voit ce bilan en lecture seule sur
+        <a href="/view.html" target="_blank">le lien partagé</a>.</p>
+    </section>
+  </main>
+
+  <nav class="tabs">
+    <button data-tab="saisie" class="on"><span class="ti">➕</span><span class="tl">Saisie</span></button>
+    <button data-tab="bilan"><span class="ti">📊</span><span class="tl">Bilan</span></button>
+  </nav>
+
+  <!-- ================= Dialogue saisie / confirmation ================= -->
+  <dialog id="entryDialog">
+    <h2 id="entryTitle" style="margin-top:0">Nouvelle dépense</h2>
+    <div id="entryBody"></div>
+  </dialog>
+
+  <!-- ================= Dialogue réglages ================= -->
+  <dialog id="settingsDialog">
+    <h2 style="margin-top:0">Réglages</h2>
+    <label>Jeton éditeur (pour la saisie)</label>
+    <input id="tokenInput" placeholder="jeton" />
+    <p class="hint">Seule la personne qui tient les comptes le connaît. La famille consulte
+      sans jeton via <a href="/view.html">/view.html</a>.</p>
+    <div class="row mt">
+      <button class="ghost" onclick="document.getElementById('settingsDialog').close()">Fermer</button>
+      <button class="primary" id="saveToken" style="margin-top:0">Enregistrer</button>
+    </div>
+  </dialog>
+
+  <script src="/app.js"></script>
+</body>
+</html>

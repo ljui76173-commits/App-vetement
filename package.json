@@ -1,0 +1,18 @@
+{
+  "name": "carnet-comptes-famille",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Outil de gestion de comptes familiaux — prototype V1 (capture multi-méthodes + tri automatique). Remplace un carnet papier.",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "seed": "node server/db.js --seed",
+    "reset": "node server/db.js --reset"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

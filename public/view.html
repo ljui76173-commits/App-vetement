@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#faf6ef" />
+  <title>Comptes de la famille</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="app">
+    <span style="font-size:1.4rem">📊</span>
+    <h1>Comptes de la famille</h1>
+    <span class="grow"></span>
+    <span class="pill-src">lecture seule</span>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2 id="periodLabel">Ce mois-ci</h2>
+      <div class="kpi">
+        <div class="box"><div class="n" id="kpiTotal">—</div><div class="l">Dépensé</div></div>
+        <div class="box"><div class="n" id="kpiCount">—</div><div class="l">Dépenses</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Où part l'argent</h2>
+      <div id="catBars"><p class="muted center">—</p></div>
+    </div>
+
+    <div class="card">
+      <h2>Évolution des derniers mois</h2>
+      <div class="months" id="monthChart"></div>
+    </div>
+
+    <div class="card">
+      <h2>Dernières dépenses</h2>
+      <div id="expenseList"><p class="muted center">—</p></div>
+    </div>
+
+    <p class="hint center muted">Mise à jour en direct — seule la personne qui tient les comptes peut saisir.</p>
+  </main>
+
+  <script src="/view.js"></script>
+</body>
+</html>
