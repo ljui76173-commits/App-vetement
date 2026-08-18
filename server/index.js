@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const crypto = require('node:crypto');
 const express = require('express');
 
-const { db, isSeeded, seed } = require('./db');
+const { db, isSeeded, seed, DATA_DIR } = require('./db');
 const { categorize, learnFromCorrection } = require('./categorize');
 const { parseExpense, parseReceiptText, parseLines } = require('./parse');
 const { extractReceipt, extractNotebook, hasProvider } = require('./extract');
@@ -18,7 +18,7 @@ app.use(express.json({ limit: '20mb' }));
 
 const PORT = process.env.PORT || 3000;
 const EDITOR_TOKEN = process.env.EDITOR_TOKEN || 'famille';
-const UPLOAD_DIR = path.join(__dirname, '..', 'data', 'uploads');
+const UPLOAD_DIR = path.join(DATA_DIR, 'uploads');
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 // --- Rôles : une seule éditrice (saisie), la famille en lecture seule. -------
@@ -253,7 +253,7 @@ app.delete('/api/expenses/:id', requireEditor, (req, res) => {
   const row = db.prepare('SELECT image_path FROM expenses WHERE id = ?').get(req.params.id);
   db.prepare('DELETE FROM expenses WHERE id = ?').run(req.params.id);
   if (row && row.image_path) {
-    fs.rm(path.join(__dirname, '..', 'data', row.image_path), () => {});
+    fs.rm(path.join(DATA_DIR, row.image_path), () => {});
   }
   res.json({ ok: true });
 });

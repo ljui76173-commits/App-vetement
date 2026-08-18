@@ -16,9 +16,9 @@
 
 const path = require('node:path');
 const fs = require('node:fs');
-const { db, getSetting, setSetting } = require('./db');
+const { db, getSetting, setSetting, DATA_DIR } = require('./db');
 
-const RECAP_DIR = path.join(__dirname, '..', 'data', 'recaps');
+const RECAP_DIR = path.join(DATA_DIR, 'recaps');
 fs.mkdirSync(RECAP_DIR, { recursive: true });
 
 const MONTHS_FR = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet',

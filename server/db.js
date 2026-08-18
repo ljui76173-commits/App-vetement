@@ -9,7 +9,8 @@ const path = require('node:path');
 const fs = require('node:fs');
 const { DatabaseSync } = require('node:sqlite');
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
+// DATA_DIR peut pointer vers un disque persistant (hébergement) via l'env.
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
 const DB_PATH = process.env.DB_PATH || path.join(DATA_DIR, 'comptes.db');
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -190,7 +191,7 @@ function reset() {
 
 migrate();
 
-module.exports = { db, migrate, seed, reset, isSeeded, normalize, getSetting, setSetting };
+module.exports = { db, migrate, seed, reset, isSeeded, normalize, getSetting, setSetting, DATA_DIR };
 
 // CLI: node server/db.js --seed | --reset
 if (require.main === module) {

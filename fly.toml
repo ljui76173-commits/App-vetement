@@ -1,0 +1,26 @@
+# Configuration d'hébergement gratuit (Fly.io).
+# Le nom "app" sera généré/choisi lors de `fly launch` — laisse-toi guider.
+app = "carnet-comptes-famille"
+primary_region = "cdg"  # Paris
+
+[build]
+
+[env]
+  DATA_DIR = "/data"
+  RECAP_PERIOD = "month"   # récap mensuel (mets "week" pour hebdo)
+
+# Disque persistant : garde tes dépenses même après une mise à jour.
+[[mounts]]
+  source = "carnet_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"   # s'endort quand personne ne l'utilise (gratuit)
+  auto_start_machines = true    # se réveille tout seul à la première visite
+  min_machines_running = 0
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

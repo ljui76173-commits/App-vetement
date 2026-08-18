@@ -40,9 +40,10 @@ Réinitialiser / réamorcer : `npm run reset`. Base SQLite intégrée à Node
 > lecture photo plus précise (`ANTHROPIC_API_KEY`). Sans clé, l'OCR gratuit du
 > navigateur prend le relais. Rien d'autre n'est payant.
 >
-> **Hébergement gratuit possible** : la machine de la maison, un vieux PC, ou un
-> hébergeur à offre gratuite. (Attention aux offres à disque éphémère qui
-> effacent `data/` : préférer une machine perso ou un volume persistant.)
+> **Mettre en ligne gratuitement** (lien https à partager, données conservées) :
+> voir **[DEPLOY.md](DEPLOY.md)** — hébergement Fly.io avec disque persistant.
+> `Dockerfile` et `fly.toml` sont fournis. Le dossier de données est
+> configurable via `DATA_DIR` pour pointer sur un disque persistant.
 
 ---
 
