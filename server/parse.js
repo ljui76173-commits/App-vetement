@@ -135,4 +135,71 @@ function titleCase(s) {
     .join(' ');
 }
 
-module.exports = { parseExpense };
+/**
+ * Analyse le TEXTE BRUT d'un ticket (issu d'un OCR navigateur gratuit).
+ * Heuristiques : marchand = 1re ligne parlante, date = jj/mm/aaaa,
+ * total = ligne « total » sinon plus gros montant trouvé.
+ * @returns {{amount:number|null, merchant:string, date:string|null, note:string}}
+ */
+function parseReceiptText(raw) {
+  const lines = (raw || '')
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (!lines.length) return { amount: null, merchant: '', date: null, note: '' };
+
+  // Marchand : 1re ligne d'au moins 2 lettres, sans montant ni date.
+  let merchant = '';
+  for (const l of lines) {
+    if (/\d{1,2}[\/.]\d{1,2}/.test(l)) continue;
+    const letters = l.replace(/[^a-zA-ZÀ-ÿ]/g, '');
+    if (letters.length >= 2) { merchant = titleCase(l.replace(/\s{2,}/g, ' ')).slice(0, 40); break; }
+  }
+
+  // Date jj/mm/aaaa ou jj/mm/aa -> ISO.
+  let date = null;
+  for (const l of lines) {
+    const m = l.match(/\b(\d{1,2})[\/.](\d{1,2})[\/.](\d{2,4})\b/);
+    if (m) {
+      let [, dd, mm, yy] = m;
+      if (yy.length === 2) yy = '20' + yy;
+      date = `${yy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+      break;
+    }
+  }
+
+  // Montant : priorité aux lignes « total » (mais pas « sous-total »).
+  const amountRe = /(\d{1,4}(?:[.,]\d{2}))/g;
+  const money = (l) => {
+    const nums = (l.match(amountRe) || []).map((s) => parseFloat(s.replace(',', '.')));
+    return nums.length ? Math.max(...nums) : null;
+  };
+  let amount = null;
+  const totalLines = lines.filter((l) => /total/i.test(l) && !/sous[- ]?total/i.test(l));
+  const prioritized = [
+    ...totalLines.filter((l) => /ttc|total\b/i.test(l)),
+    ...totalLines,
+  ];
+  for (const l of prioritized) { const v = money(l); if (v) { amount = v; break; } }
+  if (amount == null) {
+    const all = lines.map(money).filter((v) => v != null);
+    if (all.length) amount = Math.max(...all); // repli : plus gros montant du ticket
+  }
+
+  return { amount: amount != null ? Math.round(amount * 100) / 100 : null, merchant, date, note: '' };
+}
+
+/**
+ * Découpe un texte multi-lignes (page de carnet OCRisée) en dépenses.
+ * @returns {Array<{amount,merchant,note}>}
+ */
+function parseLines(raw) {
+  return (raw || '')
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => /\d/.test(l)) // garde les lignes contenant un montant
+    .map(parseExpense)
+    .filter((p) => p.amount != null);
+}
+
+module.exports = { parseExpense, parseReceiptText, parseLines };

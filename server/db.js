@@ -61,7 +61,23 @@ function migrate() {
 
     CREATE INDEX IF NOT EXISTS idx_expenses_spent_at ON expenses(spent_at);
     CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category_id);
+
+    CREATE TABLE IF NOT EXISTS settings (
+      key   TEXT PRIMARY KEY,
+      value TEXT
+    );
   `);
+}
+
+function getSetting(key, fallback = null) {
+  const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key);
+  return row ? row.value : fallback;
+}
+
+function setSetting(key, value) {
+  db.prepare(
+    'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'
+  ).run(key, String(value));
 }
 
 /**
@@ -174,7 +190,7 @@ function reset() {
 
 migrate();
 
-module.exports = { db, migrate, seed, reset, isSeeded, normalize };
+module.exports = { db, migrate, seed, reset, isSeeded, normalize, getSetting, setSetting };
 
 // CLI: node server/db.js --seed | --reset
 if (require.main === module) {
