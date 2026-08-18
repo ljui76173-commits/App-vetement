@@ -1,0 +1,12 @@
+# Déploiement gratuit sur Render (sans carte, en clics).
+# Render lit ce fichier pour configurer l'app tout seul.
+services:
+  - type: web
+    name: carnet-comptes
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server/index.js
+    envVars:
+      - key: EDITOR_TOKEN
+        sync: false   # à définir dans Render (ton mot de passe de saisie)
