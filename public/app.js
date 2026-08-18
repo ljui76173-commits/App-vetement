@@ -36,9 +36,9 @@ $$('nav.tabs button').forEach((b) =>
   b.addEventListener('click', () => {
     $$('nav.tabs button').forEach((x) => x.classList.toggle('on', x === b));
     const tab = b.dataset.tab;
-    $('#tab-saisie').classList.toggle('hidden', tab !== 'saisie');
-    $('#tab-bilan').classList.toggle('hidden', tab !== 'bilan');
+    ['saisie', 'bilan', 'cats'].forEach((t) => $('#tab-' + t).classList.toggle('hidden', t !== tab));
     if (tab === 'bilan') loadStats();
+    if (tab === 'cats') renderCatManager();
   })
 );
 
@@ -75,18 +75,59 @@ $('#fileInput').addEventListener('change', async (e) => {
   e.target.value = '';
   if (!file) return;
   const { base64, mediaType } = await readFile(file);
-  toast('Lecture de la photo…');
+  const dataUrl = `data:${mediaType};base64,${base64}`;
+
+  // 1) Enregistre la photo (et lit via Claude vision si une clé est configurée).
+  let stored;
   try {
-    const r = await api('/api/capture/photo', {
+    stored = await api('/api/capture/photo', {
       method: 'POST',
       body: JSON.stringify({ type: pendingPhotoType, image: base64, mediaType }),
     });
-    if (r.lines) openNotebookLines(r.lines, r.image_path, r.message);
-    else openEntryForm({ ...r.draft, source: pendingPhotoType, image_path: r.image_path, hint: r.message });
   } catch (err) {
-    toast(err.message);
+    return toast(err.message);
+  }
+  if (stored.provider === 'claude') {
+    if (stored.lines) return openNotebookLines(stored.lines, stored.image_path, stored.message);
+    return openEntryForm({ ...stored.draft, source: pendingPhotoType, image_path: stored.image_path, hint: stored.message });
+  }
+
+  // 2) Mode GRATUIT : OCR dans le navigateur (aucune clé, aucun coût).
+  try {
+    toast('🔍 Lecture de la photo (gratuit)…');
+    const text = await ocrImage(dataUrl);
+    const r = await api('/api/parse/ocr', { method: 'POST', body: JSON.stringify({ text, type: pendingPhotoType }) });
+    if (r.lines) {
+      if (!r.lines.length) { toast('Rien de lisible — saisis à la main'); return openEntryForm({ source: pendingPhotoType, image_path: stored.image_path }); }
+      return openNotebookLines(r.lines, stored.image_path, `${r.lines.length} ligne(s) lue(s) — vérifie / corrige`);
+    }
+    openEntryForm({ ...r.draft, source: pendingPhotoType, image_path: stored.image_path, hint: 'Lu automatiquement (gratuit) — vérifie avant de valider.' });
+  } catch (err) {
+    // OCR indisponible (hors ligne) -> brouillon manuel, la photo reste jointe.
+    openEntryForm({ source: pendingPhotoType, image_path: stored.image_path, hint: 'Lecture auto indisponible — complète à la main.' });
   }
 });
+
+// OCR gratuit dans le navigateur (Tesseract.js, chargé à la demande).
+let _tesseract;
+function ensureTesseract() {
+  if (window.Tesseract) return Promise.resolve();
+  if (!_tesseract) {
+    _tesseract = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+      s.onload = resolve;
+      s.onerror = () => reject(new Error('OCR indisponible (hors ligne)'));
+      document.head.appendChild(s);
+    });
+  }
+  return _tesseract;
+}
+async function ocrImage(dataUrl) {
+  await ensureTesseract();
+  const { data } = await window.Tesseract.recognize(dataUrl, 'fra');
+  return data.text || '';
+}
 
 function readFile(file) {
   return new Promise((resolve) => {
@@ -372,6 +413,68 @@ function fmtMonth(ym) {
   const [y, m] = ym.split('-');
   return ['jan', 'fév', 'mar', 'avr', 'mai', 'juin', 'juil', 'aoû', 'sep', 'oct', 'nov', 'déc'][+m - 1] + ' ' + y.slice(2);
 }
+
+// ---------------------------------------------------------------------------
+// Catégories — les siennes (reprises du carnet), modifiables
+// ---------------------------------------------------------------------------
+async function renderCatManager() {
+  state.categories = await api('/api/categories');
+  const wrap = $('#catManager');
+  wrap.innerHTML = '';
+  state.categories.forEach((c) => {
+    const row = document.createElement('div');
+    row.className = 'exp';
+    row.innerHTML = `
+      <input class="c-emoji" value="${escapeAttr(c.emoji)}" maxlength="4"
+             style="flex:0 0 48px;text-align:center;font-size:1.3rem;padding:8px" />
+      <input class="c-name" value="${escapeAttr(c.name)}" style="flex:1" />
+      <button class="ghost c-save" title="Enregistrer">✓</button>
+      <button class="ghost c-del" title="Retirer">✕</button>`;
+    row.querySelector('.c-save').onclick = async () => {
+      try {
+        await api(`/api/categories/${c.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ name: row.querySelector('.c-name').value, emoji: row.querySelector('.c-emoji').value }),
+        });
+        toast('Catégorie mise à jour');
+        renderCatManager();
+      } catch (e) { toast(e.message); }
+    };
+    row.querySelector('.c-del').onclick = async () => {
+      await api(`/api/categories/${c.id}`, { method: 'PATCH', body: JSON.stringify({ archived: true }) });
+      toast('Catégorie retirée');
+      renderCatManager();
+    };
+    wrap.appendChild(row);
+  });
+}
+
+$('#addCat').addEventListener('click', async () => {
+  const name = $('#newCatName').value.trim();
+  if (!name) return toast('Nom requis');
+  try {
+    await api('/api/categories', { method: 'POST', body: JSON.stringify({ name, emoji: $('#newCatEmoji').value.trim() || '📌' }) });
+    $('#newCatName').value = ''; $('#newCatEmoji').value = '';
+    toast('Catégorie ajoutée');
+    renderCatManager();
+  } catch (e) { toast(e.message); }
+});
+
+$('#importCats').addEventListener('click', async () => {
+  const lines = $('#importText').value.split('\n').map((l) => l.trim()).filter(Boolean);
+  if (!lines.length) return toast('Colle d’abord ta liste');
+  let n = 0;
+  for (const line of lines) {
+    const m = line.match(/^(\p{Extended_Pictographic}️?)?\s*(.+)$/u);
+    const emoji = (m && m[1]) || '📌';
+    const name = ((m && m[2]) || line).trim();
+    if (!name) continue;
+    try { await api('/api/categories', { method: 'POST', body: JSON.stringify({ name, emoji }) }); n++; } catch (e) { /* doublon ignoré */ }
+  }
+  $('#importText').value = '';
+  toast(`${n} catégorie(s) importée(s)`);
+  renderCatManager();
+});
 
 // ---------------------------------------------------------------------------
 // Divers

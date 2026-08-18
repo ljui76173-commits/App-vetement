@@ -67,13 +67,42 @@
         <div class="months" id="monthChart"></div>
       </div>
       <p class="hint center">La famille voit ce bilan en lecture seule sur
-        <a href="/view.html" target="_blank">le lien partagé</a>.</p>
+        <a href="/view.html" target="_blank">le lien partagé</a>.
+        Récap prêt à partager : <a href="/recap" target="_blank">/recap</a>.</p>
+    </section>
+
+    <!-- ======================= ONGLET CATÉGORIES ======================= -->
+    <section id="tab-cats" class="hidden">
+      <div class="card">
+        <h2>Tes catégories</h2>
+        <p class="hint">Ce sont <b>tes</b> catégories, celles de ton carnet. Renomme,
+          change l'emoji, ou retire celles que tu n'utilises pas.</p>
+        <div id="catManager"></div>
+      </div>
+
+      <div class="card">
+        <h2>Ajouter une catégorie</h2>
+        <div class="row">
+          <input id="newCatEmoji" placeholder="🙂" maxlength="4" style="flex:0 0 70px;text-align:center;font-size:1.3rem" />
+          <input id="newCatName" placeholder="Nom (ex : Animaux)" />
+        </div>
+        <button class="primary" id="addCat">Ajouter</button>
+      </div>
+
+      <div class="card">
+        <h2>Reprendre les catégories du carnet</h2>
+        <p class="hint">Colle la liste de ton carnet, une catégorie par ligne
+          (tu peux mettre un emoji devant). On les crée d'un coup.</p>
+        <textarea id="importText" rows="5" placeholder="🛒 Courses&#10;⛽ Essence&#10;🏥 Santé&#10;🎁 Cadeaux"></textarea>
+        <button class="primary" id="importCats">Importer mes catégories</button>
+      </div>
     </section>
   </main>
 
   <nav class="tabs">
     <button data-tab="saisie" class="on"><span class="ti">➕</span><span class="tl">Saisie</span></button>
     <button data-tab="bilan"><span class="ti">📊</span><span class="tl">Bilan</span></button>
+    <button data-tab="cats"><span class="ti">🏷️</span><span class="tl">Catégories</span></button>
   </nav>
 
   <!-- ================= Dialogue saisie / confirmation ================= -->

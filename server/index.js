@@ -7,8 +7,9 @@ const express = require('express');
 
 const { db, isSeeded, seed } = require('./db');
 const { categorize, learnFromCorrection } = require('./categorize');
-const { parseExpense } = require('./parse');
+const { parseExpense, parseReceiptText, parseLines } = require('./parse');
 const { extractReceipt, extractNotebook, hasProvider } = require('./extract');
+const { buildRecap, renderHtml, sendRecap, startScheduler, period } = require('./recap');
 
 if (!isSeeded()) seed();
 
@@ -119,6 +120,18 @@ app.post('/api/parse', requireEditor, (req, res) => {
     ? db.prepare('SELECT name, emoji FROM categories WHERE id = ?').get(guess.category_id)
     : null;
   res.json({ parsed, suggestion: { ...guess, category: cat } });
+});
+
+// Texte OCR gratuit (Tesseract navigateur) -> dépense(s) + suggestion.
+// Aucun service payant : l'OCR tourne côté navigateur, on ne reçoit que le texte.
+app.post('/api/parse/ocr', requireEditor, (req, res) => {
+  const { text = '', type = 'receipt' } = req.body || {};
+  const withSuggestion = (d) => ({ ...d, suggestion: categorize({ merchant: d.merchant, note: d.note, amount: d.amount }) });
+  if (type === 'notebook') {
+    return res.json({ lines: parseLines(text).map(withSuggestion) });
+  }
+  const parsed = parseReceiptText(text);
+  res.json({ draft: withSuggestion(parsed) });
 });
 
 // =============================================================================
@@ -285,14 +298,37 @@ app.get('/api/stats/summary', (req, res) => {
   });
 });
 
+// =============================================================================
+//  Récap automatique périodique
+// =============================================================================
+// Aperçu JSON (public — c'est un résumé destiné à la famille).
+app.get('/api/recap', (req, res) => {
+  const kind = req.query.period === 'week' ? 'week' : req.query.period === 'month' ? 'month' : period();
+  res.json(buildRecap(kind));
+});
+
+// Page HTML du récap (celle qu'on partage / colle dans un mail).
+app.get('/recap', (req, res) => {
+  const kind = req.query.period === 'week' ? 'week' : req.query.period === 'month' ? 'month' : period();
+  res.type('html').send(renderHtml(buildRecap(kind)));
+});
+
+// Déclenchement manuel de l'envoi (éditrice) — utile pour tester le canal.
+app.post('/api/recap/send', requireEditor, async (req, res) => {
+  const result = await sendRecap({ force: true, kind: req.body?.period === 'week' ? 'week' : req.body?.period === 'month' ? 'month' : period() });
+  res.json(result);
+});
+
 // --- Fichiers statiques ------------------------------------------------------
 app.use('/uploads', requireEditor, express.static(UPLOAD_DIR));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.listen(PORT, () => {
-  console.log(`\n  Carnet de comptes — prototype V1`);
+  console.log(`\n  Carnet de comptes — prototype V1  (100% gratuit)`);
   console.log(`  ▸ App éditrice   : http://localhost:${PORT}/`);
   console.log(`  ▸ Vue famille    : http://localhost:${PORT}/view.html`);
+  console.log(`  ▸ Récap          : http://localhost:${PORT}/recap  (envoi ${period()})`);
   console.log(`  ▸ Jeton éditeur  : "${EDITOR_TOKEN}"  (env EDITOR_TOKEN pour changer)`);
-  console.log(`  ▸ OCR photo      : ${hasProvider() ? 'Claude vision (ANTHROPIC_API_KEY détecté)' : 'manuel (aucune clé)'}\n`);
+  console.log(`  ▸ OCR photo      : ${hasProvider() ? 'Claude vision (payant, clé détectée)' : 'gratuit — dans le navigateur'}\n`);
+  startScheduler();
 });
